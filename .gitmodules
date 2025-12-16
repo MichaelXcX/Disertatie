@@ -1,0 +1,6 @@
+[submodule "strawberry"]
+	path = strawberry
+	url = https://github.com/MichaelXcX/strawberry-problem.git
+[submodule "mamba"]
+	path = mamba
+	url = https://github.com/MichaelXcX/mamba.git
