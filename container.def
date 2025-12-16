@@ -1,0 +1,86 @@
+Bootstrap: docker
+From: nvidia/cuda:12.8.0-cudnn-devel-ubuntu24.04
+
+%labels
+    Author YourName
+    Project Experiments
+    CUDA 12.8
+    GPU A100/H100
+
+%files
+    requirements.txt        /opt/app/requirements.txt
+    .hf_token               /opt/app/.hf_token
+    generate_datasets.sh    /opt/app/generate_datasets.sh
+    train.sh                /opt/app/train.sh
+    wiki_train.sh           /opt/app/wiki_train.sh
+    ablation.sh             /opt/app/ablation.sh
+
+%post
+    set -e
+
+    echo "=== System packages ==="
+    apt update -y && apt upgrade -y
+    apt install -y \
+        python3 \
+        python3-pip \
+        python3-venv \
+        python-is-python3 \
+        git \
+        curl \
+        ca-certificates \
+        build-essential \
+        locales \
+        bash
+
+    echo "=== Locale ==="
+    locale-gen en_US.UTF-8
+    update-locale LANG=en_US.UTF-8
+
+    echo "=== Python venv ==="
+    python3 -m venv /opt/venv
+    . /opt/venv/bin/activate
+
+    pip install --upgrade pip setuptools wheel
+
+    echo "=== Install Python dependencies ==="
+    pip install --no-cache-dir -r /opt/app/requirements.txt
+
+    echo "=== HuggingFace token ==="
+    mkdir -p /root/.huggingface
+    cat /opt/app/.hf_token > /root/.huggingface/token
+    chmod 600 /root/.huggingface/token
+
+    echo "=== Permissions ==="
+    chmod +x /opt/app/*.sh
+
+    echo "=== Cleanup ==="
+    apt clean
+    rm -rf /var/lib/apt/lists/*
+
+%environment
+    # Python
+    export VIRTUAL_ENV=/opt/venv
+    export PATH="/opt/venv/bin:$PATH"
+    export PYTHONUNBUFFERED=1
+
+    # HuggingFace
+    export HF_HOME=/root/.huggingface
+    export TRANSFORMERS_CACHE=/root/.huggingface
+    export HF_DATASETS_CACHE=/root/.huggingface/datasets
+    export HF_HUB_DISABLE_TELEMETRY=1
+
+    # CUDA
+    export CUDA_DEVICE_ORDER=PCI_BUS_ID
+
+    # Locale
+    export LANG=en_US.UTF-8
+    export LC_ALL=en_US.UTF-8
+
+%runscript
+    echo "Container ready."
+    echo "Available scripts:"
+    echo "  - generate_datasets.sh"
+    echo "  - train.sh"
+    echo "  - wiki_train.sh"
+    echo "  - ablation.sh"
+    exec "$@"
